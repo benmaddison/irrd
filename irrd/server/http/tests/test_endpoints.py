@@ -9,7 +9,7 @@ from irrd.storage.preload import Preloader
 from irrd.updates.handler import ChangeSubmissionHandler
 from irrd.utils.validators import RPSLChangeSubmission, RPSLSuspensionSubmission
 from ..app import app
-from ..endpoints import StatusEndpoint, WhoisQueryEndpoint
+from ..endpoints_api import StatusEndpoint, WhoisQueryEndpoint
 from ..status_generator import StatusGenerator
 from ...whois.query_parser import WhoisQueryParser
 from ...whois.query_response import WhoisQueryResponse, WhoisQueryResponseType, \

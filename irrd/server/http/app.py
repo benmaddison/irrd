@@ -6,16 +6,21 @@ from ariadne.asgi import GraphQL
 from setproctitle import setproctitle
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.routing import Mount
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.routing import Mount, Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 # Relative imports are not allowed in this file
+from starlette_wtf import CSRFProtectMiddleware
+
 from irrd import ENV_MAIN_PROCESS_PID
+from irrd.auth.auth import auth_middleware
+from irrd.auth.routes import UI_ROUTES
 from irrd.conf import config_init
 from irrd.server.graphql import ENV_UVICORN_WORKER_CONFIG_PATH
 from irrd.server.graphql.extensions import error_formatter, QueryMetadataExtension
 from irrd.server.graphql.schema_builder import build_executable_schema
-from irrd.server.http.endpoints import StatusEndpoint, SuspensionSubmissionEndpoint, WhoisQueryEndpoint, ObjectSubmissionEndpoint
+from irrd.server.http.endpoints_api import StatusEndpoint, SuspensionSubmissionEndpoint, WhoisQueryEndpoint, ObjectSubmissionEndpoint
 from irrd.storage.database_handler import DatabaseHandler
 from irrd.storage.preload import Preloader
 from irrd.utils.process_support import memory_trim
@@ -75,6 +80,7 @@ routes = [
     Mount("/v1/submit", ObjectSubmissionEndpoint),
     Mount("/v1/suspension", SuspensionSubmissionEndpoint),
     Mount("/graphql", graphql),
+    Mount('/ui', name='ui', routes=UI_ROUTES)
 ]
 
 
@@ -92,5 +98,10 @@ app = Starlette(
     routes=routes,
     on_startup=[startup],
     on_shutdown=[shutdown],
-    middleware=[Middleware(MemoryTrimMiddleware)],
+    middleware=[
+        Middleware(MemoryTrimMiddleware),
+        Middleware(SessionMiddleware, secret_key='foo'),  # TODO: restrict security? secret key
+        Middleware(CSRFProtectMiddleware, csrf_secret='foo2'),
+        auth_middleware,
+    ],
 )

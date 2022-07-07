@@ -21,6 +21,7 @@ SOURCE_NAME_RE = re.compile('^[A-Z][A-Z0-9-]*[A-Z0-9]$')
 RPKI_IRR_PSEUDO_SOURCE = 'RPKI'
 AUTH_SET_CREATION_COMMON_KEY = 'COMMON'
 SOCKET_DEFAULT_TIMEOUT = 30
+RPSL_MNTNER_AUTH_INTERNAL = 'IRRD-INTERNAL-AUTH'
 
 
 LOGGING = {
@@ -47,6 +48,9 @@ LOGGING = {
         },
         'sqlalchemy': {
             'level': 'WARNING',
+        },
+        'multipart': {
+            'level': 'INFO',
         },
         '': {
             'handlers': ['console'],

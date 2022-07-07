@@ -1,10 +1,8 @@
 from collections import OrderedDict
-
 from typing import Set, List, Optional, Union
 
 from irrd.conf import AUTH_SET_CREATION_COMMON_KEY, PASSWORD_HASH_DUMMY_VALUE, get_setting
 from irrd.utils.pgp import get_gpg_instance
-from .passwords import PASSWORD_REPLACEMENT_HASH, get_password_hashers
 from .fields import (RPSLTextField, RPSLIPv4PrefixField, RPSLIPv4PrefixesField, RPSLIPv6PrefixField,
                      RPSLIPv6PrefixesField, RPSLIPv4AddressRangeField, RPSLASNumberField,
                      RPSLASBlockField,
@@ -13,6 +11,7 @@ from .fields import (RPSLTextField, RPSLIPv4PrefixField, RPSLIPv4PrefixesField, 
                      RPSLReferenceListField, RPSLAuthField, RPSLRouteSetMembersField,
                      RPSLChangedField, RPSLURLField)
 from .parser import RPSLObject, UnknownRPSLObjectClassException
+from .passwords import PASSWORD_REPLACEMENT_HASH, get_password_hashers
 from ..utils.validators import parse_as_number, ValidationError
 
 RPSL_ROUTE_OBJECT_CLASS_FOR_IP_VERSION = {

@@ -1,19 +1,20 @@
 import logging
 import textwrap
 from collections import defaultdict
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Union
 
 from ordered_set import OrderedSet
 
 from irrd.conf import get_setting
 from irrd.rpsl.rpsl_objects import RPSLMntner
 from irrd.storage.database_handler import DatabaseHandler
+from irrd.storage.models import AuthUser
 from irrd.storage.queries import RPSLDatabaseQuery
 from irrd.utils import email
+from irrd.utils.validators import RPSLChangeSubmission, RPSLSuspensionSubmission
 from .parser import parse_change_requests, ChangeRequest, SuspensionRequest
-from .parser_state import SuspensionRequestType, UpdateRequestStatus, UpdateRequestType
+from .parser_state import UpdateRequestStatus, UpdateRequestType
 from .validators import ReferenceValidator, AuthValidator
-from ..utils.validators import RPSLChangeSubmission, RPSLSuspensionSubmission
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +27,13 @@ class ChangeSubmissionHandler:
     those part of the same message, and checking authentication.
     """
 
-    def load_text_blob(self, object_texts_blob: str, pgp_fingerprint: str=None, request_meta: Dict[str, Optional[str]]=None):
+    def load_text_blob(self, object_texts_blob: str, pgp_fingerprint: str=None, internal_authenticated_user: Optional[AuthUser]=None, request_meta: Dict[str, Optional[str]]=None):
         self.database_handler = DatabaseHandler()
         self.request_meta = request_meta if request_meta else {}
         self._pgp_key_id = self._resolve_pgp_key_id(pgp_fingerprint) if pgp_fingerprint else None
 
         reference_validator = ReferenceValidator(self.database_handler)
-        auth_validator = AuthValidator(self.database_handler, self._pgp_key_id)
+        auth_validator = AuthValidator(self.database_handler, self._pgp_key_id, internal_authenticated_user)
         change_requests = parse_change_requests(object_texts_blob, self.database_handler,
                                                 auth_validator, reference_validator)
 

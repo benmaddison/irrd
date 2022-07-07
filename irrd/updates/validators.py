@@ -10,6 +10,7 @@ from irrd.conf import get_setting
 from irrd.rpsl.parser import RPSLObject
 from irrd.rpsl.rpsl_objects import RPSLMntner, rpsl_object_from_text, RPSLSet
 from irrd.storage.database_handler import DatabaseHandler
+from irrd.storage.models import AuthUser
 from irrd.storage.queries import RPSLDatabaseQuery, RPSLDatabaseSuspendedQuery
 from .parser_state import RPSLSetAutnumAuthenticationMode, UpdateRequestType
 
@@ -145,13 +146,14 @@ class AuthValidator:
     overrides: List[str]
     keycert_obj_pk: Optional[str] = None
 
-    def __init__(self, database_handler: DatabaseHandler, keycert_obj_pk=None) -> None:
+    def __init__(self, database_handler: DatabaseHandler, keycert_obj_pk=None, internal_authenticated_user=Optional[AuthUser]) -> None:
         self.database_handler = database_handler
         self.passwords = []
         self.overrides = []
         self._mntner_db_cache: Set[RPSLMntner] = set()
         self._pre_approved: Set[str] = set()
         self.keycert_obj_pk = keycert_obj_pk
+        self._internal_authenticated_user = internal_authenticated_user
 
     def pre_approve(self, presumed_valid_new_mntners: List[RPSLMntner]) -> None:
         """
@@ -229,12 +231,21 @@ class AuthValidator:
                 else:
                     result.error_messages.add('Object submitted with dummy hash values, but multiple or no passwords '
                                               'submitted. Either submit only full hashes, or a single password.')
-            elif not rpsl_obj_new.verify_auth(self.passwords, self.keycert_obj_pk):
+            # if this has a linked AuthMntner tell the RPSLMntner?
+            elif not any([
+                rpsl_obj_new.verify_auth(self.passwords, self.keycert_obj_pk),
+                self._mntner_matches_internal_auth(rpsl_obj_new.pk(), source),
+            ]):
                 result.error_messages.add('Authorisation failed for the auth methods on this mntner object.')
 
         return result
 
     def check_override(self) -> bool:
+        if self._internal_authenticated_user.override:
+            logger.info(f'Authenticated by valid override from internally authenticated '
+                        f'user {self._internal_authenticated_user}')
+            return True
+
         override_hash = get_setting('auth.override_password')
         if override_hash:
             for override in self.overrides:
@@ -275,7 +286,8 @@ class AuthValidator:
             mntner_objs += retrieved_mntner_objs
 
         for mntner_name in mntner_pk_list:
-            if mntner_name in self._pre_approved:
+            matches_internal_auth = self._mntner_matches_internal_auth(mntner_name, source)
+            if mntner_name in self._pre_approved or matches_internal_auth:
                 return True, mntner_objs
 
         for mntner_obj in mntner_objs:
@@ -283,6 +295,12 @@ class AuthValidator:
                 return True, mntner_objs
 
         return False, mntner_objs
+
+    def _mntner_matches_internal_auth(self, rpsl_pk, source) -> bool:
+        return any([
+            rpsl_pk == perm.mntner.rpsl_mntner_pk and source == perm.mntner.rpsl_mntner_source
+            for perm in self._internal_authenticated_user.permissions
+        ])
 
     def _generate_failure_message(self, result: ValidatorResult, failed_mntner_list: List[str],
                                   rpsl_obj, related_object_class: Optional[str]=None,

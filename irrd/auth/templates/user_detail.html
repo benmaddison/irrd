@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>User</h2>
+    <p>ID: {{ user.pk }}<br>Name: {{ user.name }}</p>
+
+    {% for permission in user.permissions %}
+        <h3 class="mt-4">mntner {{ permission.mntner.rpsl_mntner_pk }}</h3>
+        <p>
+            You {{ "" if permission.user_management else "do not" }}
+            have user management permissions on this mntner.
+        </p>
+        <h5>All users with access to {{ permission.mntner.rpsl_mntner_pk }}</h5>
+        <table class="table mb-4">
+            <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">User management</th>
+                {% if permission.user_management %}
+                    <th></th>
+                {% endif %}
+
+            </tr>
+            </thead>
+            <tbody>
+            {% for mntner_perm in permission.mntner.permissions %}
+                <tr>
+                    <td>{{ mntner_perm.user.name }}</td>
+                    <td>{{ mntner_perm.user.email }}</td>
+                    <td>{{ "Yes" if mntner_perm.user_management else "No" }}</td>
+                    {% if permission.user_management %}
+                        <td>
+                            <a href="{{ url_for("ui:permission_delete", permission=mntner_perm.pk) }}">Remove access</a>
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% if permission.user_management %}
+            <a href="{{ url_for("ui:permission_add", mntner=permission.mntner_id) }}">
+                Add access for another user
+            </a>
+        {% endif %}
+    {% endfor %}
+{% endblock %}

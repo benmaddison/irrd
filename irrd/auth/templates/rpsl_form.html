@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>Change/create/delete object(s){% if status %}: {{ status }}{% endif %}</h2>
+    {% if report %}
+        <pre>{{ report }}</pre>
+    {% endif %}
+    {% if not status or status != 'SUCCESS' %}
+        <div class="row">
+            <div class="col-lg-9">
+                <form action="{{ url_for("ui:rpsl_update") }}" method="post">
+                    <div class="mb-3">
+                        <textarea id="data" autocorrect="off" autofocus name="data" class="form-control font-monospace" style="height: 70vh" placeholder="">{{ existing_data }}</textarea>
+                    </div>
+                    <div class="mb-3 d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Submit</button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-lg-3">
+                explain
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
