@@ -44,7 +44,7 @@ class TestStatusEndpoint:
         })
 
         mock_database_status_generator = Mock(spec=StatusGenerator)
-        monkeypatch.setattr('irrd.server.http.endpoints.StatusGenerator',
+        monkeypatch.setattr('irrd.server.http.endpoints_api.StatusGenerator',
                             lambda: mock_database_status_generator)
         mock_database_status_generator.generate_status = lambda: 'status'
 
@@ -73,7 +73,7 @@ class TestStatusEndpoint:
 class TestWhoisQueryEndpoint:
     def test_query_endpoint(self, monkeypatch):
         mock_query_parser = Mock(spec=WhoisQueryParser)
-        monkeypatch.setattr('irrd.server.http.endpoints.WhoisQueryParser',
+        monkeypatch.setattr('irrd.server.http.endpoints_api.WhoisQueryParser',
                             lambda client_ip, client_str, preloader, database_handler: mock_query_parser)
         app = Mock(state=Mock(
             database_handler=Mock(spec=DatabaseHandler),
@@ -138,7 +138,7 @@ class TestWhoisQueryEndpoint:
 class TestObjectSubmissionEndpoint:
     def test_endpoint(self, monkeypatch):
         mock_handler = Mock(spec=ChangeSubmissionHandler)
-        monkeypatch.setattr('irrd.server.http.endpoints.ChangeSubmissionHandler',
+        monkeypatch.setattr('irrd.server.http.endpoints_api.ChangeSubmissionHandler',
                             lambda: mock_handler)
         mock_handler.submitter_report_json = lambda: {'response': True}
 
@@ -194,7 +194,7 @@ class TestObjectSubmissionEndpoint:
 class TestSuspensionSubmissionEndpoint:
     def test_endpoint(self, monkeypatch):
         mock_handler = Mock(spec=ChangeSubmissionHandler)
-        monkeypatch.setattr('irrd.server.http.endpoints.ChangeSubmissionHandler',
+        monkeypatch.setattr('irrd.server.http.endpoints_api.ChangeSubmissionHandler',
                             lambda: mock_handler)
         mock_handler.submitter_report_json = lambda: {'response': True}
 
