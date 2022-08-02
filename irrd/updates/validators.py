@@ -146,7 +146,7 @@ class AuthValidator:
     overrides: List[str]
     keycert_obj_pk: Optional[str] = None
 
-    def __init__(self, database_handler: DatabaseHandler, keycert_obj_pk=None, internal_authenticated_user=Optional[AuthUser]) -> None:
+    def __init__(self, database_handler: DatabaseHandler, keycert_obj_pk=None, internal_authenticated_user: Optional[AuthUser]=None) -> None:
         self.database_handler = database_handler
         self.passwords = []
         self.overrides = []
