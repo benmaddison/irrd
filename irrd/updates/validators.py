@@ -241,7 +241,7 @@ class AuthValidator:
         return result
 
     def check_override(self) -> bool:
-        if self._internal_authenticated_user.override:
+        if self._internal_authenticated_user and self._internal_authenticated_user.override:
             logger.info(f'Authenticated by valid override from internally authenticated '
                         f'user {self._internal_authenticated_user}')
             return True
@@ -297,6 +297,8 @@ class AuthValidator:
         return False, mntner_objs
 
     def _mntner_matches_internal_auth(self, rpsl_pk, source) -> bool:
+        if not self._internal_authenticated_user:
+            return False
         return any([
             rpsl_pk == perm.mntner.rpsl_mntner_pk and source == perm.mntner.rpsl_mntner_source
             for perm in self._internal_authenticated_user.permissions
