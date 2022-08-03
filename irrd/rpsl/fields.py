@@ -7,7 +7,7 @@ from IPy import IP
 
 from irrd.utils.text import clean_ip_value_error
 from irrd.utils.validators import parse_as_number, ValidationError
-from .passwords import get_password_hashers
+from .auth import get_password_hashers
 from .parser_state import RPSLParserMessages, RPSLFieldParseResult
 
 # The IPv4/IPv6 regexes are for initial screening - not full validators
@@ -512,7 +512,7 @@ class RPSLAuthField(RPSLTextField):
         valid_beginnings = [hasher + ' ' for hasher in hashers.keys()]
         has_valid_beginning = any(value.upper().startswith(b) for b in valid_beginnings)
         is_valid_hash = has_valid_beginning and value.count(' ') == 1 and not value.count(',')
-        # TODO: we need a check that INTERNAL is only used for linked mntners, probably attached to new authentication for legacy submission methods
+
         if is_valid_hash or re_pgpkey.match(value.upper()) or value == RPSL_MNTNER_AUTH_INTERNAL:
             return RPSLFieldParseResult(value)
 

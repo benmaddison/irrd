@@ -8,7 +8,7 @@ from starlette.requests import HTTPConnection, Request
 from starlette.responses import RedirectResponse
 
 from irrd.storage.models import AuthUser
-from . import ORMSessionProvider, session_provider_manager, template_context_render
+from . import ORMSessionProvider, template_context_render
 
 
 async def login(request: Request):

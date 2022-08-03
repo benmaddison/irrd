@@ -277,7 +277,7 @@ class Configuration:
             if params.get('autnum_authentication') and params['autnum_authentication'].lower() not in valid_auth:
                 errors.append(f'Setting auth.set_creation.{set_name}.autnum_authentication must be one of {valid_auth} if set')
 
-        from irrd.rpsl.passwords import PasswordHasherAvailability
+        from irrd.rpsl.auth import PasswordHasherAvailability
         valid_hasher_availability = [avl.value for avl in PasswordHasherAvailability]
         for hasher_name, setting in config.get('auth.password_hashers', {}).items():
             if setting.lower() not in valid_hasher_availability:

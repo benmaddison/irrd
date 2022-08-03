@@ -4,6 +4,8 @@ from typing import Set, List, Optional, Union
 from irrd.conf import (AUTH_SET_CREATION_COMMON_KEY, PASSWORD_HASH_DUMMY_VALUE, get_setting,
                        RPSL_MNTNER_AUTH_INTERNAL)
 from irrd.utils.pgp import get_gpg_instance
+from irrd.utils.validators import parse_as_number, ValidationError
+from .auth import PASSWORD_REPLACEMENT_HASH, verify_auth_lines
 from .fields import (RPSLTextField, RPSLIPv4PrefixField, RPSLIPv4PrefixesField, RPSLIPv6PrefixField,
                      RPSLIPv6PrefixesField, RPSLIPv4AddressRangeField, RPSLASNumberField,
                      RPSLASBlockField,
@@ -12,8 +14,6 @@ from .fields import (RPSLTextField, RPSLIPv4PrefixField, RPSLIPv4PrefixesField, 
                      RPSLReferenceListField, RPSLAuthField, RPSLRouteSetMembersField,
                      RPSLChangedField, RPSLURLField)
 from .parser import RPSLObject, UnknownRPSLObjectClassException
-from .passwords import PASSWORD_REPLACEMENT_HASH, get_password_hashers
-from ..utils.validators import parse_as_number, ValidationError
 
 RPSL_ROUTE_OBJECT_CLASS_FOR_IP_VERSION = {
     4: 'route',
@@ -311,27 +311,7 @@ class RPSLMntner(RPSLObject):
             self.messages.error('Either all password auth hashes in a submitted mntner must be dummy objects, or none.')
 
     def verify_auth(self, passwords: List[str], keycert_obj_pk: Optional[str]=None) -> bool:
-        """
-        Verify whether one of a given list of passwords matches
-        any of the auth hashes in this object, or match the
-        keycert object PK.
-        """
-        hashers = get_password_hashers(permit_legacy=True)
-        for auth in self.parsed_data.get('auth', []):
-            if keycert_obj_pk and auth.upper() == keycert_obj_pk.upper():
-                return True
-            if ' ' not in auth:
-                continue
-            scheme, hash = auth.split(' ', 1)
-            hasher = hashers.get(scheme.upper())
-            if hasher:
-                for password in passwords:
-                    try:
-                        if hasher.verify(password, hash):
-                            return True
-                    except ValueError:
-                        pass
-        return False
+        return verify_auth_lines(self.parsed_data['auth'], passwords, keycert_obj_pk)
 
     def has_dummy_auth_value(self) -> bool:
         """
@@ -366,7 +346,7 @@ class RPSLMntner(RPSLObject):
         return [auth for auth in lines if ' ' not in auth]
 
     def has_internal_auth(self) -> bool:
-        return set(self.parsed_data.get('auth')) == {RPSL_MNTNER_AUTH_INTERNAL}
+        return set(self.parsed_data['auth']) == {RPSL_MNTNER_AUTH_INTERNAL}
 
 
 class RPSLPeeringSet(RPSLSet):
