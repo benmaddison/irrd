@@ -3,14 +3,15 @@ import logging
 from dataclasses import dataclass, field
 from typing import Set, Tuple, List, Optional, TYPE_CHECKING, Union
 
+import sqlalchemy.orm as saorm
 from ordered_set import OrderedSet
 from passlib.hash import md5_crypt
 
-from irrd.conf import get_setting
+from irrd.conf import get_setting, RPSL_MNTNER_AUTH_INTERNAL
 from irrd.rpsl.parser import RPSLObject
 from irrd.rpsl.rpsl_objects import RPSLMntner, rpsl_object_from_text, RPSLSet
 from irrd.storage.database_handler import DatabaseHandler
-from irrd.storage.models import AuthUser
+from irrd.storage.models import AuthUser, AuthMntner
 from irrd.storage.queries import RPSLDatabaseQuery, RPSLDatabaseSuspendedQuery
 from .parser_state import RPSLSetAutnumAuthenticationMode, UpdateRequestType
 
@@ -420,14 +421,39 @@ class RulesValidator:
 
     def validate(self, rpsl_obj: RPSLObject, request_type: UpdateRequestType) -> ValidatorResult:
         result = ValidatorResult()
+
         if request_type == UpdateRequestType.CREATE and rpsl_obj.rpsl_object_class == 'mntner' and \
                 self._check_suspended_mntner_with_same_pk(rpsl_obj.pk(), rpsl_obj.source()):
             result.error_messages.add(
                 f'A suspended mntner with primary key {rpsl_obj.pk()} already exists for {rpsl_obj.source()}'
             )
+
+        if isinstance(rpsl_obj, RPSLMntner):
+            is_migrated = self._check_mntner_migrated(rpsl_obj.pk(), rpsl_obj.source())
+            # Note that RPSLMntner already checks that internal is not combined with other
+            # auth methods, so has_internal_auth guarantees no other methods.
+            has_internal_auth = rpsl_obj.has_internal_auth()
+            if is_migrated and not has_internal_auth:
+                result.error_messages.add(
+                    f'This maintainer is migrated and can only use the {RPSL_MNTNER_AUTH_INTERNAL} method.'
+                )
+            elif not is_migrated and has_internal_auth:
+                result.error_messages.add(
+                    f'This maintainer is not migrated, and therefore can not use the {RPSL_MNTNER_AUTH_INTERNAL} method.'
+                )
+
         return result
 
     @functools.lru_cache(maxsize=50)
     def _check_suspended_mntner_with_same_pk(self, pk: str, source: str) -> bool:
         q = RPSLDatabaseSuspendedQuery().object_classes(['mntner']).rpsl_pk(pk).sources([source]).first_only()
         return bool(list(self.database_handler.execute_query(q)))
+
+    @functools.lru_cache(maxsize=50)
+    def _check_mntner_migrated(self, pk: str, source: str) -> bool:
+        session = saorm.Session(bind=self.database_handler._connection)
+        query = session.query(AuthMntner).filter(
+            AuthMntner.rpsl_mntner_pk == pk,
+            AuthMntner.rpsl_mntner_source == source,
+        )
+        return bool(query.count())

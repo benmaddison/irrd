@@ -1,4 +1,5 @@
 import secrets
+from collections import defaultdict
 
 import wtforms
 from starlette.requests import Request
@@ -48,8 +49,7 @@ async def index(request: Request, session_provider: ORMSessionProvider) -> Respo
 async def rpsl_detail(request: Request, session_provider: ORMSessionProvider):
     if request.method == 'GET':
         if all([key in request.path_params for key in ['rpsl_pk', 'object_class', 'source']]):
-            query = session_provider.session.query(RPSLDatabaseObject)
-            query = query.filter(
+            query = session_provider.session.query(RPSLDatabaseObject).filter(
                 RPSLDatabaseObject.rpsl_pk == str(request.path_params['rpsl_pk'].upper()),
                 RPSLDatabaseObject.object_class == str(request.path_params['object_class'].lower()),
                 RPSLDatabaseObject.source == str(request.path_params['source'].upper()),
@@ -65,13 +65,16 @@ async def rpsl_detail(request: Request, session_provider: ORMSessionProvider):
 
 # TODO: CSRF?
 @session_provider_manager
-@authentication_required
 async def rpsl_update(request: Request, session_provider: ORMSessionProvider) -> Response:
+    mntner_perms = defaultdict(list)
+    if request.auth.is_authenticated:
+        for perm in request.auth.user.permissions:
+            mntner_perms[perm.mntner.rpsl_mntner_source].append(perm.mntner.rpsl_mntner_pk)
+
     if request.method == 'GET':
         existing_data = ''
         if all([key in request.path_params for key in ['rpsl_pk', 'object_class', 'source']]):
-            query = session_provider.session.query(RPSLDatabaseObject)
-            query = query.filter(
+            query = session_provider.session.query(RPSLDatabaseObject).filter(
                 RPSLDatabaseObject.rpsl_pk == str(request.path_params['rpsl_pk'].upper()),
                 RPSLDatabaseObject.object_class == str(request.path_params['object_class'].lower()),
                 RPSLDatabaseObject.source == str(request.path_params['source'].upper()),
@@ -84,6 +87,7 @@ async def rpsl_update(request: Request, session_provider: ORMSessionProvider) ->
             'existing_data': existing_data,
             'status': None,
             'report': None,
+            'mntner_perms': mntner_perms,
         })
 
     elif request.method == 'POST':
@@ -97,12 +101,13 @@ async def rpsl_update(request: Request, session_provider: ORMSessionProvider) ->
         handler = ChangeSubmissionHandler().load_text_blob(
             object_texts_blob=form_data['data'],
             request_meta=request_meta,
-            internal_authenticated_user=request.auth.user,
+            internal_authenticated_user=request.auth.user if request.auth.is_authenticated else None,
         )
         return template_context_render('rpsl_form.html', request, {
             'existing_data': form_data['data'],
             'status': handler.status(),
             'report': handler.submitter_report_human(),
+            'mntner_perms': mntner_perms,
         })
     return Response(status_code=405)  # pragma: no cover
 

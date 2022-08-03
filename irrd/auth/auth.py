@@ -11,11 +11,10 @@ from irrd.storage.models import AuthUser
 from . import ORMSessionProvider, session_provider_manager, template_context_render
 
 
-@session_provider_manager
 async def login(request: Request):
     if request.method == 'GET':
         return template_context_render('login.html', request, {
-            'errors': 'Invalid account or password.',
+            'errors': None,
         })
 
     if request.method == 'POST':

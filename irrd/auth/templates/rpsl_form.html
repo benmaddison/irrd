@@ -9,7 +9,8 @@
             <div class="col-lg-9">
                 <form action="{{ url_for("ui:rpsl_update") }}" method="post">
                     <div class="mb-3">
-                        <textarea id="data" autocorrect="off" autofocus name="data" class="form-control font-monospace" style="height: 70vh" placeholder="">{{ existing_data }}</textarea>
+                        <textarea id="data" autocorrect="off" autofocus name="data" class="form-control font-monospace"
+                                  style="height: 70vh" placeholder="">{{ existing_data }}</textarea>
                     </div>
                     <div class="mb-3 d-grid">
                         <button type="submit" class="btn btn-primary btn-lg">Submit</button>
@@ -17,7 +18,27 @@
                 </form>
             </div>
             <div class="col-lg-3">
-                explain
+                <p>
+                    Here you can submit changes to RPSL objects in plain text.
+                    This form is identical to email submissions, which means you
+                    can use the pseudo-attributes <code>delete</code> for deletions
+                    or <code>password</code> for password authentication.
+                    See the <a href="TODO">IRRD documentation</a> for more details.
+                </p>
+                <p>
+                    {% if mntner_perms %}
+                        Your user is already authorised for the following
+                        maintainers without needing to enter their password:
+                    {% endif %}
+                </p>
+                {% for source, mntners in mntner_perms.items() %}
+                    In {{ source }}:
+                    <ul>
+                        {% for mntner in mntners %}
+                            <li>{{ mntner }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endfor %}
             </div>
         </div>
     {% endif %}

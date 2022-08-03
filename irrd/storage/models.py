@@ -223,9 +223,10 @@ class AuthUser(Base):  # type: ignore
     # active state?
     # u2f? separate auth?
 
-    active = sa.Column(sa.Boolean, default=False)
-    override = sa.Column(sa.Boolean, default=False)
+    active = sa.Column(sa.Boolean, default=False, nullable=False)
+    override = sa.Column(sa.Boolean, default=False, nullable=False)
     api_tokens = relationship("AuthApiToken", backref='user')
+
     permissions = relationship(
         "AuthPermission",
         backref='user',

@@ -1,7 +1,8 @@
 from collections import OrderedDict
 from typing import Set, List, Optional, Union
 
-from irrd.conf import AUTH_SET_CREATION_COMMON_KEY, PASSWORD_HASH_DUMMY_VALUE, get_setting
+from irrd.conf import (AUTH_SET_CREATION_COMMON_KEY, PASSWORD_HASH_DUMMY_VALUE, get_setting,
+                       RPSL_MNTNER_AUTH_INTERNAL)
 from irrd.utils.pgp import get_gpg_instance
 from .fields import (RPSLTextField, RPSLIPv4PrefixField, RPSLIPv4PrefixesField, RPSLIPv6PrefixField,
                      RPSLIPv6PrefixesField, RPSLIPv4AddressRangeField, RPSLASNumberField,
@@ -301,6 +302,10 @@ class RPSLMntner(RPSLObject):
         if not super().clean():
             return False  # pragma: no cover
 
+        auth_set = set(self.parsed_data['auth'])
+        if RPSL_MNTNER_AUTH_INTERNAL in auth_set and auth_set != {RPSL_MNTNER_AUTH_INTERNAL}:
+            self.messages.error(f'{RPSL_MNTNER_AUTH_INTERNAL} can not be mixed with other auth methods.')
+
         dummy_matches = [auth[1] == PASSWORD_HASH_DUMMY_VALUE for auth in self._auth_lines(True)]
         if any(dummy_matches) and not all(dummy_matches):
             self.messages.error('Either all password auth hashes in a submitted mntner must be dummy objects, or none.')
@@ -359,6 +364,9 @@ class RPSLMntner(RPSLObject):
         if password_hashes is True:
             return [auth.split(' ', 1) for auth in lines if ' ' in auth]
         return [auth for auth in lines if ' ' not in auth]
+
+    def has_internal_auth(self) -> bool:
+        return set(self.parsed_data.get('auth')) == {RPSL_MNTNER_AUTH_INTERNAL}
 
 
 class RPSLPeeringSet(RPSLSet):
