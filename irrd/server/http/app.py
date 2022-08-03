@@ -7,9 +7,8 @@ from setproctitle import setproctitle
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.routing import Mount, Route
+from starlette.routing import Mount
 from starlette.types import ASGIApp, Receive, Scope, Send
-
 # Relative imports are not allowed in this file
 from starlette_wtf import CSRFProtectMiddleware
 
@@ -20,11 +19,11 @@ from irrd.conf import config_init
 from irrd.server.graphql import ENV_UVICORN_WORKER_CONFIG_PATH
 from irrd.server.graphql.extensions import error_formatter, QueryMetadataExtension
 from irrd.server.graphql.schema_builder import build_executable_schema
-from irrd.server.http.endpoints_api import StatusEndpoint, SuspensionSubmissionEndpoint, WhoisQueryEndpoint, ObjectSubmissionEndpoint
+from irrd.server.http.endpoints_api import StatusEndpoint, SuspensionSubmissionEndpoint, \
+    WhoisQueryEndpoint, ObjectSubmissionEndpoint
 from irrd.storage.database_handler import DatabaseHandler
 from irrd.storage.preload import Preloader
 from irrd.utils.process_support import memory_trim
-
 
 logger = logging.getLogger(__name__)
 

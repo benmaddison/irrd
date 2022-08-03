@@ -18,7 +18,7 @@ from . import (ORMSessionProvider, template_context_render, authentication_requi
 
 @session_provider_manager
 @authentication_required
-async def index(request: Request, session_provider: ORMSessionProvider):
+async def index(request: Request, session_provider: ORMSessionProvider) -> Response:
     # TODO: RPKI state??
     user_mntners = [
         (perm.mntner.rpsl_mntner_pk, perm.mntner.rpsl_mntner_source)
@@ -28,13 +28,13 @@ async def index(request: Request, session_provider: ORMSessionProvider):
         return Response('Missing permission', status_code=404)
     user_mntbys, user_sources = zip(*user_mntners)
     q = RPSLDatabaseQuery().lookup_attrs_in(['mnt-by'], user_mntbys).sources(user_sources)
-    objects = list(session_provider.database_handler.execute_query(q))
+    query_result = session_provider.database_handler.execute_query(q)
     objects = filter(
         lambda obj: any([
             (mntby, obj['source']) in user_mntners
             for mntby in obj['parsed_data']['mnt-by']
         ]),
-        objects
+        query_result,
     )
 
     return template_context_render('index.html', request, {
@@ -66,7 +66,7 @@ async def rpsl_detail(request: Request, session_provider: ORMSessionProvider):
 # TODO: CSRF?
 @session_provider_manager
 @authentication_required
-async def rpsl_update(request: Request, session_provider: ORMSessionProvider):
+async def rpsl_update(request: Request, session_provider: ORMSessionProvider) -> Response:
     if request.method == 'GET':
         existing_data = ''
         if all([key in request.path_params for key in ['rpsl_pk', 'object_class', 'source']]):
@@ -104,17 +104,19 @@ async def rpsl_update(request: Request, session_provider: ORMSessionProvider):
             'status': handler.status(),
             'report': handler.submitter_report_human(),
         })
+    return Response(status_code=405)  # pragma: no cover
 
 
 @authentication_required
-async def user_detail(request: Request):
+async def user_detail(request: Request) -> Response:
     return template_context_render('user_detail.html', request, {'user': request.auth.user})
 
 
 class PermissionAddForm(StarletteForm, wtforms.Form):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, session_provider: ORMSessionProvider, **kwargs):
         super().__init__(*args, **kwargs)
         self.new_user = None
+        self.session_provider = session_provider
 
     new_user_email = wtforms.EmailField(
         "Email address of the newly authorised user",
@@ -129,20 +131,20 @@ class PermissionAddForm(StarletteForm, wtforms.Form):
     )
     submit = wtforms.SubmitField("Authorise this user")
 
-    async def validate(self, extra_validators=None, session_provider: ORMSessionProvider=None, mntner: AuthMntner=None):
+    async def validate(self, extra_validators=None, mntner: AuthMntner=None):
         valid = await super().validate(extra_validators)
         if not valid:
             return False
 
-        query = session_provider.session.query(AuthUser).filter_by(email=self.new_user_email.data)
-        self.new_user = await session_provider.run(query.one)
+        query = self.session_provider.session.query(AuthUser).filter_by(email=self.new_user_email.data)
+        self.new_user = await self.session_provider.run(query.one)
 
         if not self.new_user:
             self.new_user_email.errors.append('Unknown user account.')
             return False
 
-        query = session_provider.session.query(AuthPermission).filter_by(mntner=mntner, user=self.new_user)
-        existing_perms = await session_provider.run(query.count)
+        query = self.session_provider.session.query(AuthPermission).filter_by(mntner=mntner, user=self.new_user)
+        existing_perms = await self.session_provider.run(query.count)
 
         if existing_perms:
             self.new_user_email.errors.append('This user already has permissions on this mntner.')
@@ -154,7 +156,7 @@ class PermissionAddForm(StarletteForm, wtforms.Form):
 @csrf_protect
 @session_provider_manager
 @authentication_required
-async def permission_add(request: Request, session_provider: ORMSessionProvider):
+async def permission_add(request: Request, session_provider: ORMSessionProvider) -> Response:
     query = session_provider.session.query(AuthMntner).join(AuthPermission)
     query = query.filter(
         AuthMntner.pk == request.path_params['mntner'],
@@ -166,9 +168,9 @@ async def permission_add(request: Request, session_provider: ORMSessionProvider)
     if not mntner:
         return Response(status_code=404)
 
-    form = await PermissionAddForm.from_formdata(request=request)
+    form = await PermissionAddForm.from_formdata(request=request, session_provider=session_provider)
     context = RendererContext()
-    if not form.is_submitted() or not await form.validate(session_provider=session_provider, mntner=mntner):
+    if not form.is_submitted() or not await form.validate(mntner=mntner):
         form_html = context.render(form)
         return template_context_render(
             'permission_form.html', request, {'form_html': form_html, 'mntner': mntner}
@@ -195,7 +197,7 @@ class PermissionDeleteForm(StarletteForm, wtforms.Form):
 @csrf_protect
 @session_provider_manager
 @authentication_required
-async def permission_delete(request: Request, session_provider: ORMSessionProvider):
+async def permission_delete(request: Request, session_provider: ORMSessionProvider) -> Response:
     query = session_provider.session.query(AuthPermission)
     user_mntner_pks = [
         perm.mntner_id
@@ -228,8 +230,9 @@ async def permission_delete(request: Request, session_provider: ORMSessionProvid
 
 
 class MntnerMigrateInitiateForm(StarletteForm, wtforms.Form):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, session_provider: ORMSessionProvider, **kwargs):
         super().__init__(*args, **kwargs)
+        self.session_provider = session_provider
         self.rpsl_mntner = None
         self.rpsl_mntner_db_pk = None
         auth_sources = [
@@ -261,18 +264,18 @@ class MntnerMigrateInitiateForm(StarletteForm, wtforms.Form):
     )
     submit = wtforms.SubmitField("Migrate this mntner")
 
-    async def validate(self, extra_validators=None, session_provider: ORMSessionProvider=None):
+    async def validate(self, extra_validators=None):
         valid = await super().validate(extra_validators)
         if not valid:
             return False
 
-        query = session_provider.session.query(RPSLDatabaseObject).outerjoin(AuthMntner)
+        query = self.session_provider.session.query(RPSLDatabaseObject).outerjoin(AuthMntner)
         query = query.filter(
             RPSLDatabaseObject.rpsl_pk == self.mntner_key.data,
             RPSLDatabaseObject.source == self.mntner_source.data,
             RPSLDatabaseObject.object_class == 'mntner',
         )
-        mntner_obj = await session_provider.run(query.one)
+        mntner_obj = await self.session_provider.run(query.one)
         if not mntner_obj:
             self.mntner_key.errors.append('Unable to find this mntner object.')
             return False
@@ -292,10 +295,10 @@ class MntnerMigrateInitiateForm(StarletteForm, wtforms.Form):
 @csrf_protect
 @session_provider_manager
 @authentication_required
-async def mntner_migrate_initiate(request: Request, session_provider: ORMSessionProvider):
-    form = await MntnerMigrateInitiateForm.from_formdata(request=request)
+async def mntner_migrate_initiate(request: Request, session_provider: ORMSessionProvider) -> Response:
+    form = await MntnerMigrateInitiateForm.from_formdata(request=request, session_provider=session_provider)
     context = RendererContext()
-    if not form.is_submitted() or not await form.validate(session_provider=session_provider):
+    if not form.is_submitted() or not await form.validate():
         form_html = context.render(form)
         return template_context_render(
             'mntner_migrate_initiate.html', request, {'form_html': form_html}
@@ -338,7 +341,7 @@ class MntnerMigrateCompleteForm(StarletteForm, wtforms.Form):
     )
     submit = wtforms.SubmitField("Migrate this mntner")
 
-    async def validate(self, extra_validators=None, session_provider: ORMSessionProvider=None):
+    async def validate(self, extra_validators=None):
         valid = await super().validate(extra_validators)
         if not valid:
             return False
@@ -354,7 +357,7 @@ class MntnerMigrateCompleteForm(StarletteForm, wtforms.Form):
 @csrf_protect
 @session_provider_manager
 @authentication_required
-async def mntner_migrate_complete(request: Request, session_provider: ORMSessionProvider):
+async def mntner_migrate_complete(request: Request, session_provider: ORMSessionProvider) -> Response:
     query = session_provider.session.query(AuthMntner).join(AuthPermission)
     query = query.filter(
         AuthMntner.pk == str(request.path_params['pk']),
@@ -368,7 +371,7 @@ async def mntner_migrate_complete(request: Request, session_provider: ORMSession
         return Response(status_code=404)
     form = await MntnerMigrateCompleteForm.from_formdata(request=request, auth_mntner=auth_mntner)
     context = RendererContext()
-    if not form.is_submitted() or not await form.validate(session_provider=session_provider):
+    if not form.is_submitted() or not await form.validate():
         form_html = context.render(form)
         return template_context_render('mntner_migrate_complete.html', request, {
             'form_html': form_html, 'auth_mntner': auth_mntner

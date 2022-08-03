@@ -1,16 +1,12 @@
-import asyncio
 import functools
 from pathlib import Path
-from typing import Optional
 
 import sqlalchemy.orm as saorm
 from asgiref.sync import sync_to_async
 from psycopg2 import DatabaseError
 from sqlalchemy.exc import SQLAlchemyError
-from starlette.concurrency import run_in_threadpool
-from starlette.endpoints import HTTPEndpoint
 from starlette.requests import Request
-from starlette.responses import Response, RedirectResponse
+from starlette.responses import RedirectResponse
 from starlette.templating import Jinja2Templates
 
 import irrd
