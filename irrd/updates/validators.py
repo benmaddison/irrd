@@ -294,6 +294,9 @@ class AuthValidator:
         for mntner_obj in mntner_objs:
             if mntner_obj.verify_auth(self.passwords, self.keycert_obj_pk):
                 return True, mntner_objs
+            authmntner = self._find_migrated_authmntner(mntner_obj)
+            if authmntner and authmntner.verify_legacy_auth(self.passwords, self.keycert_obj_pk):
+                return True, mntner_objs
 
         return False, mntner_objs
 
@@ -402,6 +405,15 @@ class AuthValidator:
                 f'Creating this object requires an aut-num for {rpsl_obj_new.pk_asn_segment} to exist.'
             )
         return None
+
+    @functools.lru_cache(maxsize=50)
+    def _find_migrated_authmntner(self, mntner_obj: RPSLMntner) -> Optional[AuthMntner]:
+        session = saorm.Session(bind=self.database_handler._connection)
+        query = session.query(AuthMntner).filter(
+            AuthMntner.rpsl_mntner_pk == mntner_obj.pk(),
+            AuthMntner.rpsl_mntner_source == mntner_obj.source(),
+        )
+        return query.one()
 
 
 def _init_related_object_query(rpsl_object_class: str, rpsl_obj_new: RPSLObject) -> RPSLDatabaseQuery:

@@ -1,4 +1,5 @@
 import enum
+from typing import List, Optional
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql as pg
@@ -6,6 +7,7 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship
 
 from irrd.rpki.status import RPKIStatus
+from irrd.rpsl.auth import verify_auth_lines
 from irrd.rpsl.rpsl_objects import lookup_field_names
 from irrd.scopefilter.status import ScopeFilterStatus
 
@@ -296,6 +298,9 @@ class AuthMntner(Base):  # type: ignore
 
     def __repr__(self):
         return f'AuthMntner<{self.pk}, {self.rpsl_mntner_pk}>'
+
+    def verify_legacy_auth(self, passwords: List[str], keycert_obj_pk: Optional[str] = None) -> bool:
+        return verify_auth_lines(self.legacy_methods, passwords, keycert_obj_pk)
 
 
 class AuthPermission(Base):  # type: ignore
