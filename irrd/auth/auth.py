@@ -4,36 +4,10 @@ from imia import (SessionAuthenticator, AuthenticationMiddleware, LoginManager, 
                   UserProvider)
 from sqlalchemy.orm import joinedload
 from starlette.middleware import Middleware
-from starlette.requests import HTTPConnection, Request
-from starlette.responses import RedirectResponse
+from starlette.requests import HTTPConnection
 
 from irrd.storage.models import AuthUser
-from . import ORMSessionProvider, template_context_render
-
-
-async def login(request: Request):
-    if request.method == 'GET':
-        return template_context_render('login.html', request, {
-            'errors': None,
-        })
-
-    if request.method == 'POST':
-        data = await request.form()
-        email = data['email']
-        password = data['password']
-
-        user_token = await login_manager.login(request, email, password)
-        if user_token:
-            return RedirectResponse(request.url_for('ui:index'), status_code=302)
-        else:
-            return template_context_render('login.html', request, {
-                'errors': 'Invalid account or password.',
-            })
-
-
-async def logout(request: Request):
-    await login_manager.logout(request)
-    return RedirectResponse(request.url_for('ui:index'), status_code=302)
+from . import ORMSessionProvider
 
 
 class AuthProvider(UserProvider):

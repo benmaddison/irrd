@@ -1,10 +1,10 @@
 from starlette.routing import Route
 
-from .auth import login, logout
+from .endpoints_account import (login, logout, create_account, set_password)
 from .http_endpoints import (
-    index, rpsl_detail, rpsl_update, user_detail, permission_add, permission_delete,
-    mntner_migrate_initiate, mntner_migrate_complete, create_account, set_password,
-)
+    index, rpsl_detail, rpsl_update, user_detail, )
+from .endpoints_mntners import (permission_add, permission_delete, mntner_migrate_initiate,
+                                mntner_migrate_complete)
 
 UI_ROUTES = [
     Route("/", index, name="index"),
