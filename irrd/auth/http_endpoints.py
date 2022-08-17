@@ -318,7 +318,6 @@ async def mntner_migrate_initiate(request: Request, session_provider: ORMSession
         rpsl_mntner_pk=form.rpsl_mntner.pk(),
         rpsl_mntner_obj_id=str(form.rpsl_mntner_db_pk),
         rpsl_mntner_source=form.mntner_source.data,
-        legacy_methods=form.rpsl_mntner.parsed_data['auth'],
         migration_token=secrets.token_urlsafe(24),
     )
     session_provider.session.add(new_auth_mntner)
@@ -390,7 +389,7 @@ async def mntner_migrate_complete(request: Request, session_provider: ORMSession
     session_provider.session.add(form.auth_mntner)
 
     # TODO: probably move this to RPSLMntner?
-    form.rpsl_mntner_obj._update_attribute_value('auth', [RPSL_MNTNER_AUTH_INTERNAL])
+    form.rpsl_mntner_obj.parsed_data['auth'].append(RPSL_MNTNER_AUTH_INTERNAL)
     session_provider.database_handler.upsert_rpsl_object(form.rpsl_mntner_obj, origin=JournalEntryOrigin.unknown)
 
     return RedirectResponse(request.url_for('ui:user_detail'), status_code=302)

@@ -293,9 +293,6 @@ class AuthValidator:
         for mntner_obj in mntner_objs:
             if mntner_obj.verify_auth(self.passwords, self.keycert_obj_pk):
                 return True, mntner_objs
-            authmntner = self._find_migrated_authmntner(mntner_obj)
-            if authmntner and authmntner.verify_legacy_auth(self.passwords, self.keycert_obj_pk):
-                return True, mntner_objs
 
         return False, mntner_objs
 
@@ -405,15 +402,6 @@ class AuthValidator:
             )
         return None
 
-    @functools.lru_cache(maxsize=50)
-    def _find_migrated_authmntner(self, mntner_obj: RPSLMntner) -> Optional[AuthMntner]:
-        session = saorm.Session(bind=self.database_handler._connection)
-        query = session.query(AuthMntner).filter(
-            AuthMntner.rpsl_mntner_pk == mntner_obj.pk(),
-            AuthMntner.rpsl_mntner_source == mntner_obj.source(),
-        )
-        return query.one()
-
 
 def _init_related_object_query(rpsl_object_class: str, rpsl_obj_new: RPSLObject) -> RPSLDatabaseQuery:
     query = RPSLDatabaseQuery().sources([rpsl_obj_new.source()])
@@ -441,12 +429,10 @@ class RulesValidator:
 
         if isinstance(rpsl_obj, RPSLMntner):
             is_migrated = self._check_mntner_migrated(rpsl_obj.pk(), rpsl_obj.source())
-            # Note that RPSLMntner already checks that internal is not combined with other
-            # auth methods, so has_internal_auth guarantees no other methods.
             has_internal_auth = rpsl_obj.has_internal_auth()
             if is_migrated and not has_internal_auth:
                 result.error_messages.add(
-                    f'This maintainer is migrated and can only use the {RPSL_MNTNER_AUTH_INTERNAL} method.'
+                    f'This maintainer is migrated and must include the {RPSL_MNTNER_AUTH_INTERNAL} method.'
                 )
             elif not is_migrated and has_internal_auth:
                 result.error_messages.add(

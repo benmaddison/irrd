@@ -302,10 +302,6 @@ class RPSLMntner(RPSLObject):
         if not super().clean():
             return False  # pragma: no cover
 
-        auth_set = set(self.parsed_data['auth'])
-        if RPSL_MNTNER_AUTH_INTERNAL in auth_set and auth_set != {RPSL_MNTNER_AUTH_INTERNAL}:
-            self.messages.error(f'{RPSL_MNTNER_AUTH_INTERNAL} can not be mixed with other auth methods.')
-
         dummy_matches = [auth[1] == PASSWORD_HASH_DUMMY_VALUE for auth in self._auth_lines(True)]
         if any(dummy_matches) and not all(dummy_matches):
             self.messages.error('Either all password auth hashes in a submitted mntner must be dummy objects, or none.')
@@ -346,7 +342,7 @@ class RPSLMntner(RPSLObject):
         return [auth for auth in lines if ' ' not in auth]
 
     def has_internal_auth(self) -> bool:
-        return set(self.parsed_data['auth']) == {RPSL_MNTNER_AUTH_INTERNAL}
+        return RPSL_MNTNER_AUTH_INTERNAL in self.parsed_data['auth']
 
 
 class RPSLPeeringSet(RPSLSet):

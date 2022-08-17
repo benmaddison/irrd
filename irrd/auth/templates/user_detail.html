@@ -9,9 +9,6 @@
             You {{ "" if permission.user_management else "do not" }}
             have user management permissions on this mntner.
         </p>
-        <p>
-            {{ permission.mntner.legacy_methods }}
-        </p>
         <h5>All users with access to {{ permission.mntner.rpsl_mntner_pk }}</h5>
         <table class="table mb-4">
             <thead>

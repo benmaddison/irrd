@@ -280,10 +280,6 @@ class AuthMntner(Base):  # type: ignore
 
     migration_token = sa.Column(sa.String, nullable=True)
 
-    # PGP?
-    pgp_keys = sa.Column(pg.JSONB)
-    legacy_methods = sa.Column(pg.ARRAY(sa.String))
-
     permissions = relationship("AuthPermission", backref='mntner')
 
     created = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False)
@@ -298,9 +294,6 @@ class AuthMntner(Base):  # type: ignore
 
     def __repr__(self):
         return f'AuthMntner<{self.pk}, {self.rpsl_mntner_pk}>'
-
-    def verify_legacy_auth(self, passwords: List[str], keycert_obj_pk: Optional[str] = None) -> bool:
-        return verify_auth_lines(self.legacy_methods, passwords, keycert_obj_pk)
 
 
 class AuthPermission(Base):  # type: ignore
