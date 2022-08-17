@@ -213,6 +213,30 @@ class ROADatabaseObject(Base):  # type: ignore
         return f'<{self.prefix}/{self.asn}>'
 
 
+class AuthPermission(Base):  # type: ignore
+    __tablename__ = 'auth_permission'
+
+    pk = sa.Column(pg.UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), primary_key=True)
+    user_id = sa.Column(pg.UUID, sa.ForeignKey("auth_user.pk", ondelete="RESTRICT"))
+    mntner_id = sa.Column(pg.UUID, sa.ForeignKey("auth_mntner.pk", ondelete="RESTRICT"))
+
+    # This may not scale well
+    user_management = sa.Column(sa.Boolean, default=False)
+
+    created = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False)
+    updated = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False)
+
+    @declared_attr
+    def __table_args__(cls):  # noqa
+        args = [
+            sa.UniqueConstraint('user_id', 'mntner_id', name='auth_permission_user_mntner_unique'),
+        ]
+        return tuple(args)
+
+    def __repr__(self):
+        return f'AuthPermission<{self.pk}, user {self.user_id}, mntner {self.mntner_id}>'
+
+
 class AuthUser(Base):  # type: ignore
     __tablename__ = 'auth_user'
 
@@ -230,6 +254,10 @@ class AuthUser(Base):  # type: ignore
     permissions = relationship(
         "AuthPermission",
         backref=sa.orm.backref('user', uselist=False),
+    )
+    mntners = relationship(
+        "AuthMntner",
+        backref="users",
         secondary="join(AuthPermission, AuthMntner, and_(AuthMntner.pk==AuthPermission.mntner_id, AuthMntner.migration_token.is_(None)))",
     )
 
@@ -278,7 +306,11 @@ class AuthMntner(Base):  # type: ignore
 
     migration_token = sa.Column(sa.String, nullable=True)
 
-    permissions = relationship("AuthPermission", backref='mntner')
+    # permissions = relationship("AuthPermission", backref='mntner')
+    permissions = relationship(
+        "AuthPermission",
+        backref=sa.orm.backref('mntner', uselist=False),
+    )
 
     created = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False)
     updated = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False)
@@ -292,30 +324,6 @@ class AuthMntner(Base):  # type: ignore
 
     def __repr__(self):
         return f'AuthMntner<{self.pk}, {self.rpsl_mntner_pk}>'
-
-
-class AuthPermission(Base):  # type: ignore
-    __tablename__ = 'auth_permission'
-
-    pk = sa.Column(pg.UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), primary_key=True)
-    user_id = sa.Column(pg.UUID, sa.ForeignKey("auth_user.pk", ondelete="RESTRICT"))
-    mntner_id = sa.Column(pg.UUID, sa.ForeignKey("auth_mntner.pk", ondelete="RESTRICT"))
-
-    # This may not scale well
-    user_management = sa.Column(sa.Boolean, default=False)
-
-    created = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False)
-    updated = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False)
-
-    @declared_attr
-    def __table_args__(cls):  # noqa
-        args = [
-            sa.UniqueConstraint('user_id', 'mntner_id', name='auth_permission_user_mntner_unique'),
-        ]
-        return tuple(args)
-
-    def __repr__(self):
-        return f'AuthPermission<{self.pk}, user {self.user_id}, mntner {self.mntner_id}>'
 
 
 class ChangeLog(Base):  # type: ignore

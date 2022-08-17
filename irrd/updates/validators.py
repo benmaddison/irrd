@@ -300,8 +300,8 @@ class AuthValidator:
         if not self._internal_authenticated_user:
             return False
         return any([
-            rpsl_pk == perm.mntner.rpsl_mntner_pk and source == perm.mntner.rpsl_mntner_source
-            for perm in self._internal_authenticated_user.permissions
+            rpsl_pk == mntner.rpsl_mntner_pk and source == mntner.rpsl_mntner_source
+            for mntner in self._internal_authenticated_user.mntners
         ])
 
     def _generate_failure_message(self, result: ValidatorResult, failed_mntner_list: List[str],

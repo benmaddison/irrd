@@ -25,8 +25,8 @@ from . import (ORMSessionProvider, template_context_render, authentication_requi
 async def index(request: Request, session_provider: ORMSessionProvider) -> Response:
     # TODO: RPKI state??
     user_mntners = [
-        (perm.mntner.rpsl_mntner_pk, perm.mntner.rpsl_mntner_source)
-        for perm in request.auth.user.permissions
+        (mntner.rpsl_mntner_pk, mntner.rpsl_mntner_source)
+        for mntner in request.auth.user.mntners
     ]
     if not user_mntners:
         return Response('Missing permission', status_code=404)
@@ -71,9 +71,8 @@ async def rpsl_detail(request: Request, session_provider: ORMSessionProvider):
 async def rpsl_update(request: Request, session_provider: ORMSessionProvider) -> Response:
     mntner_perms = defaultdict(list)
     if request.auth.is_authenticated:
-        for perm in request.auth.user.permissions:
-            print(perm)
-            mntner_perms[perm.mntner.rpsl_mntner_source].append(perm.mntner.rpsl_mntner_pk)
+        for mntner in request.auth.user.mntners:
+            mntner_perms[mntner.rpsl_mntner_source].append(mntner.rpsl_mntner_pk)
 
     if request.method == 'GET':
         existing_data = ''
