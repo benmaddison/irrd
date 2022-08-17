@@ -82,6 +82,9 @@ def send_email(recipient, subject, body) -> None:
     msg['From'] = get_setting('email.from')
     msg['To'] = recipient
 
+    print(msg)
+    return
+
     s = SMTP(get_setting('email.smtp'))
     s.send_message(msg)
     s.quit()

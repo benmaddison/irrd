@@ -1,10 +1,10 @@
 from starlette.routing import Route
 
+from .auth import login, logout
 from .http_endpoints import (
     index, rpsl_detail, rpsl_update, user_detail, permission_add, permission_delete,
-    mntner_migrate_initiate, mntner_migrate_complete,
+    mntner_migrate_initiate, mntner_migrate_complete, create_account, set_password,
 )
-from .auth import login, logout
 
 UI_ROUTES = [
     Route("/", index, name="index"),
@@ -43,6 +43,9 @@ UI_ROUTES = [
         name="permission_delete",
         methods=["GET", "POST"],
     ),
+    Route("/accounts/create/", create_account, name="create_account", methods=["GET", "POST"]),
+    Route("/accounts/set-password/{pk}/{token}/{initial:int}", set_password, name="set_password",
+          methods=["GET", "POST"]),
     Route("/login/", login, name="login", methods=["GET", "POST"]),
     Route("/logout/", logout, name="logout"),
 ]

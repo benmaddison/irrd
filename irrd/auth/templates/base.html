@@ -35,6 +35,7 @@
 
                 {% if request.auth.is_authenticated %}
                     {{ nav_link('ui:user_detail', 'My mntners') }}
+                    {{ nav_link('ui:mntner_migrate_initiate', 'Migrate a mntner') }}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
@@ -49,10 +50,8 @@
                     </li>
 
                 {% else %}
-
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('ui:login') }}">Log in</a>
-                    </li>
+                    {{ nav_link('ui:login', 'Log in') }}
+                    {{ nav_link('ui:create_account', 'Create account') }}
                 {% endif %}
         </div>
     </div>

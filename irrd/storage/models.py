@@ -1,5 +1,4 @@
 import enum
-from typing import List, Optional
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql as pg
@@ -7,7 +6,6 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship
 
 from irrd.rpki.status import RPKIStatus
-from irrd.rpsl.auth import verify_auth_lines
 from irrd.rpsl.rpsl_objects import lookup_field_names
 from irrd.scopefilter.status import ScopeFilterStatus
 
