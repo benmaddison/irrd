@@ -112,9 +112,13 @@ async def rpsl_update(request: Request, session_provider: ORMSessionProvider) ->
     return Response(status_code=405)  # pragma: no cover
 
 
+@session_provider_manager
 @authentication_required
-async def user_detail(request: Request) -> Response:
-    return template_context_render('user_detail.html', request, {'user': request.auth.user})
+async def user_detail(request: Request, session_provider: ORMSessionProvider) -> Response:
+    # The user detail page needs a rich and bound instance of AuthUser
+    query = session_provider.session.query(AuthUser).filter_by(email=request.auth.user.email)
+    bound_user = await session_provider.run(query.one)
+    return template_context_render('user_detail.html', request, {'user': bound_user})
 
 
 class PermissionAddForm(StarletteForm, wtforms.Form):

@@ -232,7 +232,6 @@ class AuthValidator:
                 else:
                     result.error_messages.add('Object submitted with dummy hash values, but multiple or no passwords '
                                               'submitted. Either submit only full hashes, or a single password.')
-            # if this has a linked AuthMntner tell the RPSLMntner?
             elif not any([
                 rpsl_obj_new.verify_auth(self.passwords, self.keycert_obj_pk),
                 self._mntner_matches_internal_auth(rpsl_obj_new.pk(), source),

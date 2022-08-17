@@ -231,7 +231,7 @@ class AuthUser(Base):  # type: ignore
 
     permissions = relationship(
         "AuthPermission",
-        backref='user',
+        backref=sa.orm.backref('user', uselist=False),
         secondary="join(AuthPermission, AuthMntner, and_(AuthMntner.pk==AuthPermission.mntner_id, AuthMntner.migration_token.is_(None)))",
     )
 
