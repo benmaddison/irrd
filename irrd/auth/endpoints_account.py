@@ -1,7 +1,4 @@
-import hashlib
 import secrets
-from base64 import urlsafe_b64encode, urlsafe_b64decode
-from datetime import date, timedelta
 
 import wtforms
 from starlette.requests import Request
@@ -11,6 +8,7 @@ from wtforms_bootstrap5 import RendererContext
 
 from . import template_context_render, ORMSessionProvider, session_provider_manager, templates
 from .auth import login_manager
+from .utils import reset_token, validate_token, message
 from ..storage.models import AuthUser
 
 
@@ -89,6 +87,37 @@ async def create_account(request: Request, session_provider: ORMSessionProvider)
     token = reset_token(new_user)
     email_body = templates.get_template('create_account_mail.txt').render(user_pk=new_user.pk, request=request, token=token)
     print(email_body)
+    message(request, f'You have been sent an email to confirm your account on {form.email.data}.')
+    return RedirectResponse(request.url_for('ui:index'), status_code=302)
+
+
+class ResetPasswordForm(StarletteForm, wtforms.Form):
+    email = wtforms.EmailField(
+        "Your email address",
+        validators=[wtforms.validators.DataRequired()],
+    )
+    submit = wtforms.SubmitField("Reset password")
+
+
+@csrf_protect
+@session_provider_manager
+async def reset_password(request: Request, session_provider: ORMSessionProvider) -> Response:
+    form = await ResetPasswordForm.from_formdata(request=request)
+    if not form.is_submitted() or not await form.validate():
+        context = RendererContext()
+        form_html = context.render(form)
+        return template_context_render(
+            'reset_password_form.html', request, {'form_html': form_html}
+        )
+
+    query = session_provider.session.query(AuthUser).filter_by(email=form.email.data)
+    user = await session_provider.run(query.one)
+
+    if user:
+        token = reset_token(user)
+        email_body = templates.get_template('reset_password_mail.txt').render(user_pk=user.pk, request=request, token=token)
+        print(email_body)
+    message(request, f'You have been sent an email to reset your password on {form.email.data}, if this account exists.')
     return RedirectResponse(request.url_for('ui:index'), status_code=302)
 
 
@@ -137,31 +166,5 @@ async def set_password(request: Request, session_provider: ORMSessionProvider) -
 
     user.password = form.new_password.data
     session_provider.session.add(user)
-    return RedirectResponse(request.url_for('ui:index'), status_code=302)
-
-
-# TODO: this may not belong here
-def reset_token(user: AuthUser) -> str:
-    secret = 'aaaaaa'  # TODO: actual secret key
-    user_key = str(user.pk) + str(user.updated) + user.password
-    expiry_day = date.today() + timedelta(days=7)  # TODO: configurable days
-    expiry_days = expiry_day - date(2022, 1, 1)  # TODO: constant
-    hash_token = secret + user_key + str(expiry_days.days)
-    digest = hashlib.sha224(hash_token.encode('utf-8')).digest()
-    hash = urlsafe_b64encode(digest).decode('ascii')
-    return str(expiry_days.days) + '-' + str(hash)
-
-
-def validate_token(user: AuthUser, token: str) -> bool:
-    # TODO: more resiliency for parsing errors
-    try:
-        secret = 'aaaaaa'  # TODO: actual secret key
-        expiry_days, encoded_hash = token.split('-', 1)
-        user_key = str(user.pk) + str(user.updated) + user.password
-        expiry_date = date(2022, 1, 1) + timedelta(days=int(expiry_days))  # TODO: constant
-        hash_token = secret + user_key + expiry_days
-        token_hash = urlsafe_b64decode(encoded_hash)
-        expected_hash = hashlib.sha224(hash_token.encode('utf-8')).digest()
-        return expiry_date >= date.today() and secrets.compare_digest(token_hash, expected_hash)  # TODO: not constant time
-    except ValueError:
-        return False
+    message(request, 'Your password has been changed.')
+    return RedirectResponse(request.url_for('ui:login'), status_code=302)

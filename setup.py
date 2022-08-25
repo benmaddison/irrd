@@ -14,6 +14,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type='text/x-rst',
     url='https://github.com/irrdnet/irrd',
+    license_files=['LICENSE'],
     packages=setuptools.find_packages(
         exclude=['*.tests', '*.tests.*', 'tests.*', 'tests', 'irrd.integration_tests']
     ),

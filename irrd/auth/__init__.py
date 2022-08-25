@@ -10,6 +10,7 @@ from starlette.responses import RedirectResponse
 from starlette.templating import Jinja2Templates
 
 import irrd
+from irrd.auth.utils import get_messages, message
 from irrd.conf import get_setting
 from irrd.storage.database_handler import DatabaseHandler
 
@@ -67,6 +68,7 @@ def authentication_required(func):
 
         if not request.auth.is_authenticated:
             # TODO: Implement proper redirect logic
+            message(request, 'You must be authed', 'info')
             return RedirectResponse(request.url_for('ui:login'), status_code=302)
 
         # pass on request
@@ -81,6 +83,7 @@ def template_context_render(template_name, request, context):
         for name, settings in get_setting('sources').items()
         if settings.get('authoritative')
     ]
+    context["messages"] = get_messages(request)
 
     context['request'] = request
     return templates.TemplateResponse(template_name, context)

@@ -7,7 +7,7 @@ from starlette_wtf import StarletteForm, csrf_protect
 from wtforms_bootstrap5 import RendererContext
 
 from . import (ORMSessionProvider, session_provider_manager, authentication_required,
-               template_context_render)
+               template_context_render, message)
 from irrd.conf import get_setting, RPSL_MNTNER_AUTH_INTERNAL
 from irrd.rpsl.rpsl_objects import RPSLMntner
 from irrd.storage.models import (AuthMntner, AuthUser, AuthPermission, RPSLDatabaseObject,
@@ -85,6 +85,7 @@ async def permission_add(request: Request, session_provider: ORMSessionProvider)
         user_management=bool(form.user_management.data),
     )
     session_provider.session.add(new_permission)
+    message(request, f'The permission for {form.new_user.name} on {mntner.rpsl_mntner_pk} has been added.')
     return RedirectResponse(request.url_for('ui:user_detail'), status_code=302)
 
 
@@ -128,6 +129,7 @@ async def permission_delete(request: Request, session_provider: ORMSessionProvid
     ).delete()
     session_provider.session.commit()
     session_provider.session.close()
+    message(request, f'The permission for {permission.user.name} on {permission.mntner.rpsl_mntner_pk} has been deleted.')
     return RedirectResponse(request.url_for('ui:user_detail'), status_code=302)
 
 
@@ -222,6 +224,7 @@ async def mntner_migrate_initiate(request: Request, session_provider: ORMSession
         user_management=True,
     )
     session_provider.session.add(new_permission)
+    message(request, 'You have been sent a confirmation email to complete the migration.')
     return RedirectResponse(request.url_for('ui:user_detail'), status_code=302)
 
 
@@ -285,4 +288,5 @@ async def mntner_migrate_complete(request: Request, session_provider: ORMSession
     form.rpsl_mntner_obj.parsed_data['auth'].append(RPSL_MNTNER_AUTH_INTERNAL)
     session_provider.database_handler.upsert_rpsl_object(form.rpsl_mntner_obj, origin=JournalEntryOrigin.unknown)
 
+    message(request, f'The mntner {auth_mntner.rpsl_mntner_pk} has been migrated.')
     return RedirectResponse(request.url_for('ui:user_detail'), status_code=302)
