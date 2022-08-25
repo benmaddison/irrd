@@ -9,7 +9,12 @@
         {% endif %}
     </h2>
     {% if object %}
-        <pre>{{ object.object_text }}</pre>
+        <pre>{{ object.object_text_display }}</pre>
+        {% if object.hashes_hidden %}
+            <p><em>
+                As you are not authorised on this mntner, any password hashes have been removed.
+            </em></p>
+        {% endif %}
     {% else %}
         <p>No object found with this key.</p>
     {% endif %}

@@ -8,6 +8,7 @@ from irrd.storage.queries import RPSLDatabaseQuery
 from irrd.updates.handler import ChangeSubmissionHandler
 from . import (ORMSessionProvider, template_context_render, authentication_required,
                session_provider_manager)
+from ..utils.text import remove_auth_hashes
 
 
 @session_provider_manager
@@ -50,6 +51,7 @@ async def rpsl_detail(request: Request, session_provider: ORMSessionProvider):
             rpsl_object = await session_provider.run(query.one)
         else:
             return Response('Missing search parameter', status_code=400)
+        rpsl_object.object_text_display = filter_auth_hash_non_mntner(request.auth.user, rpsl_object)
 
         return template_context_render('rpsl_detail.html', request, {
             'object': rpsl_object,
@@ -74,7 +76,7 @@ async def rpsl_update(request: Request, session_provider: ORMSessionProvider) ->
             )
             obj = await session_provider.run(query.one)
             if obj:
-                existing_data = obj.object_text
+                existing_data = filter_auth_hash_non_mntner(request.auth.user, obj)
 
         return template_context_render('rpsl_form.html', request, {
             'existing_data': existing_data,
@@ -114,3 +116,15 @@ async def user_detail(request: Request, session_provider: ORMSessionProvider) ->
     return template_context_render('user_detail.html', request, {'user': bound_user})
 
 
+# TODO: may need better place
+def filter_auth_hash_non_mntner(user: AuthUser, rpsl_object: RPSLDatabaseObject) -> str:
+    user_mntners = [
+        (mntner.rpsl_mntner_pk, mntner.rpsl_mntner_source)
+        for mntner in user.mntners
+    ]
+    if rpsl_object.object_class != 'mntner' or (rpsl_object.rpsl_pk, rpsl_object.source) in user_mntners:
+        rpsl_object.hashes_hidden = False
+        return rpsl_object.object_text
+    else:
+        rpsl_object.hashes_hidden = True
+        return remove_auth_hashes(rpsl_object.object_text)
