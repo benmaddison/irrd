@@ -3,6 +3,7 @@ from collections import defaultdict
 from asgiref.sync import sync_to_async
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette_wtf import csrf_protect, csrf_token
 
 from irrd.storage.models import AuthUser, RPSLDatabaseObject
 from irrd.storage.queries import RPSLDatabaseQuery
@@ -58,6 +59,7 @@ async def rpsl_detail(request: Request, session_provider: ORMSessionProvider):
         })
 
 
+@csrf_protect
 @session_provider_manager
 async def rpsl_update(request: Request, session_provider: ORMSessionProvider) -> Response:
     mntner_perms = defaultdict(list)
@@ -82,6 +84,7 @@ async def rpsl_update(request: Request, session_provider: ORMSessionProvider) ->
             'status': None,
             'report': None,
             'mntner_perms': mntner_perms,
+            'csrf_token': csrf_token(request),
         })
 
     elif request.method == 'POST':
@@ -106,6 +109,7 @@ async def rpsl_update(request: Request, session_provider: ORMSessionProvider) ->
             'status': handler.status(),
             'report': handler.submitter_report_human(),
             'mntner_perms': mntner_perms,
+            'csrf_token': csrf_token(request),
         })
     return Response(status_code=405)  # pragma: no cover
 

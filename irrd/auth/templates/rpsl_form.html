@@ -8,6 +8,7 @@
         <div class="row">
             <div class="col-lg-9">
                 <form action="{{ url_for("ui:rpsl_update") }}" method="post">
+                    <input id="csrf_token" name="csrf_token" type="hidden" value="{{ csrf_token }}">
                     <div class="mb-3">
                         <textarea id="data" autocorrect="off" autofocus name="data" class="form-control font-monospace"
                                   style="height: 70vh" placeholder="">{{ existing_data }}</textarea>
