@@ -8,7 +8,7 @@ from wtforms_bootstrap5 import RendererContext
 
 from . import template_context_render, ORMSessionProvider, session_provider_manager, templates
 from .auth import login_manager
-from .utils import reset_token, validate_token, message
+from .utils import AuthUserToken, message
 from ..storage.models import AuthUser
 
 
@@ -84,7 +84,7 @@ async def create_account(request: Request, session_provider: ORMSessionProvider)
     session_provider.session.add(new_user)
     session_provider.session.commit()
 
-    token = reset_token(new_user)
+    token = AuthUserToken(new_user).generate_token()
     email_body = templates.get_template('create_account_mail.txt').render(user_pk=new_user.pk, request=request, token=token)
     print(email_body)
     message(request, f'You have been sent an email to confirm your account on {form.email.data}.')
@@ -114,7 +114,7 @@ async def reset_password(request: Request, session_provider: ORMSessionProvider)
     user = await session_provider.run(query.one)
 
     if user:
-        token = reset_token(user)
+        token = AuthUserToken(user).generate_token()
         email_body = templates.get_template('reset_password_mail.txt').render(user_pk=user.pk, request=request, token=token)
         print(email_body)
     message(request, f'You have been sent an email to reset your password on {form.email.data}, if this account exists.')
@@ -150,7 +150,7 @@ async def set_password(request: Request, session_provider: ORMSessionProvider) -
     )
     user = await session_provider.run(query.one)
 
-    if not user or not validate_token(user, request.path_params['token']):
+    if not user or not AuthUserToken(user).validate_token(request.path_params['token']):
         return Response(status_code=404)
 
     # get user and check token
