@@ -1,4 +1,5 @@
 import secrets
+from urllib.parse import urlparse, unquote_plus
 
 import wtforms
 from starlette.requests import Request
@@ -10,6 +11,8 @@ from . import template_context_render, ORMSessionProvider, session_provider_mana
 from .auth import login_manager
 from .utils import AuthUserToken, message
 from ..storage.models import AuthUser
+
+LOGIN_REDIRECT_DEFAULT = 'ui:index'
 
 
 async def login(request: Request):
@@ -25,7 +28,13 @@ async def login(request: Request):
 
         user_token = await login_manager.login(request, email, password)
         if user_token:
-            return RedirectResponse(request.url_for('ui:index'), status_code=302)
+            # To prevent an open redirect, this discards everything except the
+            # path from the next parameter. Not very flexible, but sufficient
+            # for IRRD needs.
+            next_param = unquote_plus(request.query_params.get('next', ''))
+            _, _, next_path, _, _, _ = urlparse(next_param)
+            redirect = next_path if next_path else request.url_for(LOGIN_REDIRECT_DEFAULT)
+            return RedirectResponse(redirect, status_code=302)
         else:
             return template_context_render('login.html', request, {
                 'errors': 'Invalid account or password.',

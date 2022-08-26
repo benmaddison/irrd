@@ -1,5 +1,6 @@
 import functools
 from pathlib import Path
+from urllib.parse import quote_plus
 
 import sqlalchemy.orm as saorm
 from asgiref.sync import sync_to_async
@@ -65,9 +66,13 @@ def authentication_required(func):
     @functools.wraps(func)
     async def endpoint_wrapper(*args, **kwargs):
         request = next((arg for arg in list(args) + list(kwargs.values()) if isinstance(arg, Request)), None)
-
+        next_redir = request.scope.get('raw_path', '')
+        if next_redir:
+            next_redir = quote_plus(next_redir, safe='/')
+            print(next_redir)
         if not request.auth.is_authenticated:
-            return RedirectResponse(request.url_for('ui:login'), status_code=302)
+            redir_url = request.url_for('ui:login') + '?next=' + next_redir
+            return RedirectResponse(redir_url, status_code=302)
 
         return await func(*args, **kwargs)
 
