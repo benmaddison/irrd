@@ -1,5 +1,6 @@
 import typing
 
+import passlib
 from imia import (SessionAuthenticator, AuthenticationMiddleware, LoginManager, UserLike,
                   UserProvider)
 from sqlalchemy.orm import joinedload
@@ -26,15 +27,23 @@ class AuthProvider(UserProvider):
         return None
 
 
-class MyPasswordVerifier:
+class PasswordHandler:
+    hasher = passlib.hash.bcrypt
+
     def verify(self, plain: str, hashed: str) -> bool:
-        return hashed == plain
+        try:
+            return self.hasher.verify(plain, hashed)
+        except ValueError:
+            return False
+
+    def hash(self, plain: str):
+        return self.hasher.hash(plain)
 
 
 secret_key = 'key!'
 user_provider = AuthProvider()
-password_verifier = MyPasswordVerifier()
-login_manager = LoginManager(user_provider, password_verifier, secret_key)
+password_handler = PasswordHandler()
+login_manager = LoginManager(user_provider, password_handler, secret_key)
 
 
 authenticators = [

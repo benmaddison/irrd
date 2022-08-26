@@ -8,7 +8,7 @@ from starlette_wtf import StarletteForm, csrf_protect
 from wtforms_bootstrap5 import RendererContext
 
 from . import template_context_render, ORMSessionProvider, session_provider_manager, templates
-from .auth import login_manager
+from .auth import login_manager, password_handler
 from .utils import AuthUserToken, message
 from ..storage.models import AuthUser
 
@@ -173,7 +173,7 @@ async def set_password(request: Request, session_provider: ORMSessionProvider) -
             {'form_html': form_html, 'initial': request.path_params.get('initial')}
         )
 
-    user.password = form.new_password.data
+    user.password = password_handler.hash(form.new_password.data)
     session_provider.session.add(user)
     message(request, 'Your password has been changed.')
     return RedirectResponse(request.url_for('ui:login'), status_code=302)
