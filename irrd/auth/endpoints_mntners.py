@@ -78,7 +78,6 @@ async def permission_add(request: Request, session_provider: ORMSessionProvider)
             'permission_form.html', request, {'form_html': form_html, 'mntner': mntner}
         )
 
-    # TODO: require password
     new_permission = AuthPermission(
         user_id=str(form.new_user.pk),
         mntner_id=str(mntner.pk),
@@ -208,7 +207,6 @@ async def mntner_migrate_initiate(request: Request, session_provider: ORMSession
             'mntner_migrate_initiate.html', request, {'form_html': form_html}
         )
 
-    # TODO: email confirmation
     new_auth_mntner = AuthMntner(
         rpsl_mntner_pk=form.rpsl_mntner.pk(),
         rpsl_mntner_obj_id=str(form.rpsl_mntner_db_pk),
@@ -284,7 +282,6 @@ async def mntner_migrate_complete(request: Request, session_provider: ORMSession
     form.auth_mntner.migration_token = None
     session_provider.session.add(form.auth_mntner)
 
-    # TODO: probably move this to RPSLMntner?
     form.rpsl_mntner_obj.parsed_data['auth'].append(RPSL_MNTNER_AUTH_INTERNAL)
     session_provider.database_handler.upsert_rpsl_object(form.rpsl_mntner_obj, origin=JournalEntryOrigin.unknown)
 

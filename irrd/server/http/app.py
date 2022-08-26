@@ -99,7 +99,7 @@ app = Starlette(
     on_shutdown=[shutdown],
     middleware=[
         Middleware(MemoryTrimMiddleware),
-        Middleware(SessionMiddleware, secret_key='foo'),  # TODO: restrict security? secret key
+        Middleware(SessionMiddleware, secret_key='foo'),
         Middleware(CSRFProtectMiddleware, csrf_secret='foo2'),
         auth_middleware,
     ],

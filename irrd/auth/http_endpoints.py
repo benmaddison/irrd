@@ -14,7 +14,6 @@ from ..utils.text import remove_auth_hashes
 @session_provider_manager
 @authentication_required
 async def index(request: Request, session_provider: ORMSessionProvider) -> Response:
-    # TODO: RPKI state??
     user_mntners = [
         (mntner.rpsl_mntner_pk, mntner.rpsl_mntner_source)
         for mntner in request.auth.user.mntners
@@ -58,7 +57,6 @@ async def rpsl_detail(request: Request, session_provider: ORMSessionProvider):
         })
 
 
-# TODO: CSRF?
 @session_provider_manager
 async def rpsl_update(request: Request, session_provider: ORMSessionProvider) -> Response:
     mntner_perms = defaultdict(list)
@@ -86,7 +84,6 @@ async def rpsl_update(request: Request, session_provider: ORMSessionProvider) ->
         })
 
     elif request.method == 'POST':
-        # TODO: offload db part to thread
         form_data = await request.form()
         request_meta = {
             'HTTP-client-IP': request.client.host,
@@ -116,7 +113,6 @@ async def user_detail(request: Request, session_provider: ORMSessionProvider) ->
     return template_context_render('user_detail.html', request, {'user': bound_user})
 
 
-# TODO: may need better place
 def filter_auth_hash_non_mntner(user: AuthUser, rpsl_object: RPSLDatabaseObject) -> str:
     user_mntners = [
         (mntner.rpsl_mntner_pk, mntner.rpsl_mntner_source)

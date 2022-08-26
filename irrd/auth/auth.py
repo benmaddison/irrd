@@ -31,9 +31,9 @@ class MyPasswordVerifier:
         return hashed == plain
 
 
-secret_key = 'key!'  # TODO
+secret_key = 'key!'
 user_provider = AuthProvider()
-password_verifier = MyPasswordVerifier()  # TODO: pick
+password_verifier = MyPasswordVerifier()
 login_manager = LoginManager(user_provider, password_verifier, secret_key)
 
 

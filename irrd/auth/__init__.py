@@ -67,11 +67,8 @@ def authentication_required(func):
         request = next((arg for arg in list(args) + list(kwargs.values()) if isinstance(arg, Request)), None)
 
         if not request.auth.is_authenticated:
-            # TODO: Implement proper redirect logic
-            message(request, 'You must be authed', 'info')
             return RedirectResponse(request.url_for('ui:login'), status_code=302)
 
-        # pass on request
         return await func(*args, **kwargs)
 
     return endpoint_wrapper
