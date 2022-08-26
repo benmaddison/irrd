@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from asgiref.sync import sync_to_async
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -90,11 +91,16 @@ async def rpsl_update(request: Request, session_provider: ORMSessionProvider) ->
             'HTTP-User-Agent': request.headers.get('User-Agent'),
         }
 
-        handler = ChangeSubmissionHandler().load_text_blob(
-            object_texts_blob=form_data['data'],
-            request_meta=request_meta,
-            internal_authenticated_user=request.auth.user if request.auth.is_authenticated else None,
-        )
+        # ChangeSubmissionHandler builds its own DB connection
+        # and therefore needs wrapping in a thread
+        @sync_to_async
+        def save():
+            return ChangeSubmissionHandler().load_text_blob(
+                object_texts_blob=form_data['data'],
+                request_meta=request_meta,
+                internal_authenticated_user=request.auth.user if request.auth.is_authenticated else None,
+            )
+        handler = await save()
         return template_context_render('rpsl_form.html', request, {
             'existing_data': form_data['data'],
             'status': handler.status(),
