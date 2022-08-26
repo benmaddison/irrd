@@ -11,7 +11,7 @@ from starlette.responses import RedirectResponse
 from starlette.templating import Jinja2Templates
 
 import irrd
-from irrd.auth.utils import get_messages, message
+from irrd.auth.utils import get_messages
 from irrd.conf import get_setting
 from irrd.storage.database_handler import DatabaseHandler
 

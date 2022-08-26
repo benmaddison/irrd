@@ -6,12 +6,13 @@ from starlette.responses import Response, RedirectResponse
 from starlette_wtf import StarletteForm, csrf_protect
 from wtforms_bootstrap5 import RendererContext
 
-from . import (ORMSessionProvider, session_provider_manager, authentication_required,
-               template_context_render, message)
 from irrd.conf import get_setting, RPSL_MNTNER_AUTH_INTERNAL
 from irrd.rpsl.rpsl_objects import RPSLMntner
 from irrd.storage.models import (AuthMntner, AuthUser, AuthPermission, RPSLDatabaseObject,
                                  JournalEntryOrigin)
+from . import (ORMSessionProvider, session_provider_manager, authentication_required,
+               template_context_render)
+from .utils import message
 
 
 class PermissionAddForm(StarletteForm, wtforms.Form):

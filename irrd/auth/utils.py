@@ -28,7 +28,7 @@ def get_messages(request: Request):
 
 
 class AuthUserToken:
-    def __init__(self, user):
+    def __init__(self, user: AuthUser):
         self.user_key = str(user.pk) + str(user.updated) + user.password
 
     def generate_token(self) -> str:
@@ -50,6 +50,6 @@ class AuthUserToken:
         except ValueError:
             return False
 
-    def _hash(self, expiry_days: int) -> bytes:
+    def _hash(self, expiry_days: typing.Union[int, str]) -> bytes:
         hash_data = PASSWORD_RESET_SECRET + self.user_key + str(expiry_days)
         return hashlib.sha224(hash_data.encode('utf-8')).digest()
